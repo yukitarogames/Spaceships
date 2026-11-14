@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Starhaul — haul the stars home</title>
+<meta name="description" content="An incremental space game. Send ships from your homeworld to mine nearby planets, haul the cargo home and grow a star empire.">
+<meta name="theme-color" content="#070b16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Starhaul">
+<meta property="og:title" content="Starhaul">
+<meta property="og:description" content="Mine the planets around your homeworld and grow a star empire.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div id="app">
+  <header id="resbar" aria-label="Resources"></header>
+  <section id="mapwrap">
+    <canvas id="map" aria-label="Star map. Tap planets to mine them."></canvas>
+    <div class="hud" id="hud-tl">
+      <div id="home-name">Haven</div>
+      <div id="era-name">Outpost</div>
+      <div id="pop-line"><span id="pop-ic"></span><span id="pop-n">12</span></div>
+      <div id="boost"><span id="boost-t"></span></div>
+    </div>
+    <div class="hud" id="hud-tr">
+      <button class="ibtn" id="btn-ach" aria-label="Achievements"></button>
+      <button class="ibtn" id="btn-set" aria-label="Settings"></button>
+    </div>
+    <div id="toasts" aria-live="polite"></div>
+  </section>
+  <button id="mission" aria-label="Current mission"></button>
+  <main id="panel"></main>
+  <nav id="nav" aria-label="Sections"></nav>
+</div>
+<div id="modal"></div>
+<noscript><p style="color:#fff;padding:24px;font-family:sans-serif">Starhaul needs JavaScript to run.</p></noscript>
+<script src="js/data.js?v=1"></script>
+<script src="js/util.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script src="js/render.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+<script src="js/main.js?v=1"></script>
+</body>
+</html>
