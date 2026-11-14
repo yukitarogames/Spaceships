@@ -14,9 +14,9 @@
   let cv, ctx, W = 0, H = 0, DPR = 1, bg = null;
   let clock = 0;
   const view = { s: 0, cx: 0, cy: 0 };
-  const P = PLANETS.map(() => ({ x: 0, y: 0, r: 0, bump: 0, acc: 0, lastF: 0, lastPod: 0 }));
+  const P = PLANETS.map(() => ({ x: 0, y: 0, r: 0, bump: 0, acc: 0 }));
   const home = { x: 0, y: 0, r: 0, pulse: 0, key: '', spr: null };
-  const rings = [], floats = [], parts = [], pods = [], twinkles = [];
+  const rings = [], floats = [], parts = [], twinkles = [];
   const sprites = [];
   let shipK = 1;
   let cometXY = null;
@@ -432,11 +432,6 @@
       parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.8, t: 0, dur: 0.35 + Math.random() * 0.45, rgb, size: (size || 2) * (0.6 + Math.random() * 0.8) });
     }
   }
-  function pod(i, rgb) {
-    if (pods.length > 40) return;
-    pods.push({ i, t: 0, dur: 0.42 + Math.random() * 0.1, rgb, side: Math.random() < 0.5 ? 1 : -1 });
-  }
-
   function onEvent(type, a, b) {
     if (!W) return;
     if (type === 'haul') {
@@ -444,13 +439,6 @@
       p.acc += b;
       home.pulse = Math.min(1, home.pulse + 0.35);
       ring(home.x, home.y, home.r * 0.9, home.r * 1.45, 0.45, RMAP[PLANETS[a].res].rgb, 1.5, 0.45);
-    } else if (type === 'drone') {
-      const p = P[a];
-      p.acc += b;
-      if (clock - p.lastPod > 0.33) {
-        p.lastPod = clock;
-        pod(a, RMAP[PLANETS[a].res].rgb);
-      }
     } else if (type === 'unlock') {
       const p = P[a], rgb = RMAP[PLANETS[a].res].rgb;
       ring(p.x, p.y, p.r, p.r * 5, 0.9, rgb, 3, 0.9);
@@ -466,7 +454,7 @@
       ring(home.x, home.y, home.r, home.r * 3.5, 0.8, '255,255,255', 2, 0.8);
       burst(home.x, home.y, '255,205,110', 36, 170, 2.8);
       if (type === 'warp') {
-        floats.length = 0; pods.length = 0;
+        floats.length = 0;
         for (const q of P) q.acc = 0;
         R.rebuild();
       }
@@ -478,14 +466,11 @@
     }
   }
 
-  // Called by the UI when the player taps a planet
-  R.tapFx = function (i, amt) {
-    const p = P[i], res = RMAP[PLANETS[i].res];
+  // Called by the UI when the player picks a planet on the map
+  R.selectFx = function (i) {
+    const p = P[i];
     p.bump = 1;
-    ring(p.x, p.y, p.r * 0.9, p.r * 1.9 + 8, 0.35, res.rgb, 2, 0.9);
-    burst(p.x, p.y, res.rgb, 5, 90, 2);
-    pod(i, res.rgb);
-    float(p.x + (Math.random() - 0.5) * p.r * 1.6, p.y - p.r - 6, '+' + SH.fmt(amt, 1), res.color, 13, 0.9);
+    ring(p.x, p.y, p.r * 0.9, p.r * 1.9 + 8, 0.35, RMAP[PLANETS[i].res].rgb, 2, 0.9);
   };
   R.cometFx = function () {
     if (!cometXY) return;
@@ -822,20 +807,6 @@
     }
     for (let i = 0; i <= far; i++) drawLabel(i, !s.planets[i].un);
 
-    // first-run hint: tap the planet
-    if (s.mission === 0 && s.stats.taps < 10) {
-      const p = P[0], k = (clock * 1.3) % 1;
-      ctx.strokeStyle = 'rgba(255,214,130,' + (1 - k) + ')';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6 + k * 18, 0, TAU); ctx.stroke();
-      ctx.font = '700 12px ' + FONT;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(4,6,15,0.8)';
-      ctx.strokeText('TAP', p.x, p.y - p.r - 9 - Math.sin(clock * 5) * 2);
-      ctx.fillStyle = '#ffd27a';
-      ctx.fillText('TAP', p.x, p.y - p.r - 9 - Math.sin(clock * 5) * 2);
-    }
-
     // haul numbers at home: one world at a time, so they never pile up
     if (clock - lastHaulF > 0.6) {
       for (let k = 1; k <= PLANETS.length; k++) {
@@ -852,32 +823,7 @@
 
     drawComet(dt);
 
-    // pods (tap / drone deliveries)
     ctx.globalCompositeOperation = 'lighter';
-    for (let n = pods.length - 1; n >= 0; n--) {
-      const o = pods[n];
-      o.t += dt;
-      const u = o.t / o.dur;
-      if (u >= 1) {
-        pods.splice(n, 1);
-        home.pulse = Math.min(1, home.pulse + 0.25);
-        continue;
-      }
-      const p = P[o.i];
-      const dx = home.x - p.x, dy = home.y - p.y, len = Math.hypot(dx, dy) || 1;
-      const cxx = (p.x + home.x) / 2 - (dy / len) * len * 0.22 * o.side, cyy = (p.y + home.y) / 2 + (dx / len) * len * 0.22 * o.side;
-      const e = u * u * (3 - 2 * u);
-      bez(p.x, p.y, cxx, cyy, home.x, home.y, Math.max(0, e - 0.12));
-      const bx = bz.x, by = bz.y;
-      bez(p.x, p.y, cxx, cyy, home.x, home.y, e);
-      const g = ctx.createLinearGradient(bx, by, bz.x, bz.y);
-      g.addColorStop(0, 'rgba(' + o.rgb + ',0)');
-      g.addColorStop(1, 'rgba(' + o.rgb + ',0.95)');
-      ctx.strokeStyle = g; ctx.lineWidth = 2.4 * shipK; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bz.x, bz.y); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.beginPath(); ctx.arc(bz.x, bz.y, 1.6 * shipK, 0, TAU); ctx.fill();
-    }
     // rings
     for (let n = rings.length - 1; n >= 0; n--) {
       const o = rings[n];

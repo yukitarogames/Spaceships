@@ -3,7 +3,7 @@
   'use strict';
   const SH = window.SH;
   const A = (SH.A = {});
-  let ac = null, master = null, lastTap = 0;
+  let ac = null, master = null;
 
   A.unlock = function () {
     try {
@@ -38,13 +38,6 @@
     if (!ac || !s || !s.opts.sound || ac.state !== 'running') return;
     try {
       switch (name) {
-        case 'tap': {
-          const now = performance.now();
-          if (now - lastTap < 45) return;
-          lastTap = now;
-          tone(540 + Math.random() * 120, 0.07, 'triangle', 0.16, 900);
-          break;
-        }
         case 'buy': tone(420, 0.09, 'triangle', 0.16, 640); tone(640, 0.1, 'sine', 0.1, 0, 0.05); break;
         case 'deny': tone(170, 0.11, 'square', 0.05, 120); break;
         case 'ui': tone(700, 0.04, 'sine', 0.07); break;

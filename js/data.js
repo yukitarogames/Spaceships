@@ -3,7 +3,7 @@
   'use strict';
   const SH = (root.SH = root.SH || {});
 
-  SH.VERSION = 1;
+  SH.VERSION = 2; // save format (2: tap mining removed)
 
   SH.RES = [
     { id: 'ore', name: 'Ore', color: '#e0a56b' },
@@ -36,7 +36,7 @@
   // Outpost milestone levels: each one doubles that outpost's yield
   SH.MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000];
 
-  SH.SHIP = { baseCost: 20, growth: 1.25, speed: 0.4, mine: 3, cargo: 10, cargoGrowth: 1.15 };
+  SH.SHIP = { baseCost: 20, growth: 1.25, speed: 0.4, mine: 3, cargo: 10, cargoGrowth: 1.15, startOre: 25 };
   SH.OUTPOST = { growth: 1.6, per: 0.2 };
 
   // Ship upgrades. cost parts: r=resource, b=base, g=growth, from=first level that needs it
@@ -50,11 +50,8 @@
     laser: { name: 'Mining Lasers', icon: 'laser', max: 20, need: 'cry',
       desc: 'Ships fill their holds faster.',
       cost: [{ r: 'cry', b: 4000, g: 1.75 }] },
-    tap: { name: 'Tractor Beam', icon: 'tap', max: 50, need: null,
-      desc: 'Your taps pull in more with every pod.',
-      cost: [{ r: 'ore', b: 25, g: 1.6 }, { r: 'ice', b: 20, g: 1.6, from: 3 }] },
   };
-  SH.UPG_ORDER = ['cargo', 'thr', 'laser', 'tap'];
+  SH.UPG_ORDER = ['cargo', 'thr', 'laser'];
 
   SH.BLD = {
     hab: { name: 'Habitat Domes', icon: 'hab', need: null,
@@ -108,12 +105,12 @@
   SH.TECHS = [
     { id: 'sift', era: 1, cost: 30, name: 'Ore Sifters', desc: 'Ore yield ×2', fx: (f) => (f.res.ore *= 2) },
     { id: 'drill', era: 1, cost: 150, name: 'Thermal Drills', desc: 'Ice yield ×2', fx: (f) => (f.res.ice *= 2) },
-    { id: 'link', era: 1, cost: 500, name: 'Linked Pods', desc: 'Each tap also grants 2% of that planet’s income per second', fx: (f) => (f.tapLink += 0.02) },
+    { id: 'link', era: 1, cost: 500, name: 'Bulk Loaders', desc: 'All production ×1.15', fx: (f) => (f.all *= 1.15) },
     { id: 'auto', era: 1, cost: 1200, name: 'Autopilot', desc: 'Offline hauling runs at 100% instead of 50%', fx: (f) => (f.offEff = 1) },
     { id: 'watch', era: 1, cost: 2500, name: 'Comet Watch', desc: 'Comets appear 50% more often', fx: (f) => (f.cometFreq *= 1.5) },
 
     { id: 'prism', era: 2, cost: 8000, name: 'Prism Cutters', desc: 'Crystal yield ×2', fx: (f) => (f.res.cry *= 2) },
-    { id: 'drones', era: 2, cost: 25000, name: 'Mining Drones', desc: 'Drones tap every planet once a second for you', fx: (f) => (f.autoTap = Math.max(f.autoTap, 1)) },
+    { id: 'drones', era: 2, cost: 25000, name: 'Mining Drones', desc: 'Outpost drones pre-load cargo: all production ×1.2', fx: (f) => (f.all *= 1.2) },
     { id: 'relay', era: 2, cost: 50000, name: 'Long-Range Relay', desc: 'Offline time limit 4h → 12h', fx: (f) => (f.offCap += 8 * 3600) },
     { id: 'sift2', era: 2, cost: 100000, name: 'Deep-Core Sifters', desc: 'Ore yield ×3', fx: (f) => (f.res.ore *= 3) },
     { id: 'doctrine', era: 2, cost: 150000, name: 'Fleet Doctrine', desc: 'All production ×1.5', fx: (f) => (f.all *= 1.5) },
@@ -122,7 +119,7 @@
     { id: 'drill2', era: 3, cost: 1e6, name: 'Cryo Harvesters', desc: 'Ice yield ×3', fx: (f) => (f.res.ice *= 3) },
     { id: 'harpoon', era: 3, cost: 2.5e6, name: 'Comet Harpoons', desc: 'Comet rewards ×2', fx: (f) => (f.cometMult *= 2) },
     { id: 'prism2', era: 3, cost: 5e6, name: 'Resonance Cutters', desc: 'Crystal yield ×3', fx: (f) => (f.res.cry *= 3) },
-    { id: 'swarm', era: 3, cost: 8e6, name: 'Drone Swarm', desc: 'Drones tap three times a second', fx: (f) => (f.autoTap = Math.max(f.autoTap, 3)) },
+    { id: 'swarm', era: 3, cost: 8e6, name: 'Drone Swarm', desc: 'Swarms of drones work every outpost: all production ×1.4', fx: (f) => (f.all *= 1.4) },
 
     { id: 'bottle', era: 4, cost: 6e7, name: 'Magnetic Bottles', desc: 'Plasma yield ×2', fx: (f) => (f.res.pla *= 2) },
     { id: 'skim2', era: 4, cost: 1.2e8, name: 'Storm Divers', desc: 'Gas yield ×3', fx: (f) => (f.res.gas *= 3) },
@@ -139,7 +136,6 @@
     { id: 'crew', name: 'Veteran Crews', max: 5, base: 3, desc: 'Start every system with +4 ships', fx: (f, l) => (f.startShips += 4 * l) },
     { id: 'hold', name: 'Quantum Holds', max: 10, base: 2, desc: 'Cargo ×1.25', fx: (f, l) => (f.cargo *= Math.pow(1.25, l)) },
     { id: 'mind', name: 'Golden Age', max: 6, base: 3, desc: 'Research speed ×1.5', fx: (f, l) => (f.research *= Math.pow(1.5, l)) },
-    { id: 'beam', name: 'Beam Mastery', max: 4, base: 2, desc: 'Tap power +50%', fx: (f, l) => (f.tapMult *= 1 + 0.5 * l) },
     { id: 'luck', name: 'Comet Magnet', max: 5, base: 2, desc: 'Comet rewards +50%', fx: (f, l) => (f.cometMult *= 1 + 0.5 * l) },
     { id: 'time', name: 'Time Dilation', max: 4, base: 4, desc: 'Offline time limit +8h', fx: (f, l) => (f.offCap += 8 * 3600 * l) },
     { id: 'chart', name: 'Charted Routes', max: 1, base: 8, desc: 'Glacia and Prisma start already surveyed', fx: (f, l) => (f.charted = l > 0) },
@@ -154,9 +150,6 @@
   const techs = (s) => Object.keys(s.tech).length;
 
   SH.ACHS = [
-    { id: 'tap1', name: 'First Contact', desc: 'Tap a planet 25 times', t: (s) => s.stats.taps >= 25 },
-    { id: 'tap2', name: 'Busy Fingers', desc: 'Tap 500 times', t: (s) => s.stats.taps >= 500 },
-    { id: 'tap3', name: 'Tractor Maestro', desc: 'Tap 5,000 times', t: (s) => s.stats.taps >= 5000 },
     { id: 'ship1', name: 'Squadron', desc: 'Own 5 ships', t: (s) => s.ships >= 5 },
     { id: 'ship2', name: 'Flotilla', desc: 'Own 25 ships', t: (s) => s.ships >= 25 },
     { id: 'ship3', name: 'Armada', desc: 'Own 50 ships', t: (s) => s.ships >= 50 },
@@ -202,10 +195,9 @@
   // Mission chain. p(s) -> [current, goal]; tab = where the player should look.
   // reward: fixed amounts, or secs = that many seconds of current income from every world.
   SH.MISSIONS = [
-    { text: 'Tap Ferra to mine it by hand', tab: 'planets', p: (s) => [s.stats.taps, 10], reward: { ore: 20 } },
-    { text: 'Build ships until you own 3', tab: 'planets', p: (s) => [s.ships, 3], reward: { ore: 40 } },
-    { text: 'Upgrade Ferra’s outpost to level 2', tab: 'planets', p: (s) => [s.planets[0].post, 2], reward: { ore: 60 } },
-    { text: 'Build a Habitat Dome', tab: 'empire', p: (s) => [s.bld.hab, 1], reward: { ore: 80 } },
+    { text: 'Build ships until you own 3', tab: 'planets', p: (s) => [s.ships, 3], reward: { ore: 60 } },
+    { text: 'Upgrade Ferra’s outpost to level 2', tab: 'planets', p: (s) => [s.planets[0].post, 2], reward: { ore: 100 } },
+    { text: 'Build a Habitat Dome', tab: 'empire', p: (s) => [s.bld.hab, 1], reward: { ore: 150 } },
     { text: 'Survey the ice world Glacia', tab: 'planets', p: (s) => [s.planets[1].un ? 1 : 0, 1], reward: { ice: 40 } },
     { text: 'Send 3 ships to Glacia', tab: 'planets', p: (s) => [s.planets[1].ships, 3], reward: { ice: 80 } },
     { text: 'Upgrade Ion Thrusters to level 2', tab: 'ships', p: (s) => [s.upg.thr, 2], reward: { ice: 150 } },

@@ -10,9 +10,9 @@ outpost into a star empire.
 
 ## How it plays
 
-- **Tap planets** on the map to mine them by hand.
 - **Build ships** and assign them to planets. Each one flies out, mines and
-  hauls its cargo home on its own.
+  hauls its cargo home on its own. There is no tap-to-mine: your fleet does
+  the work.
 - **Survey new worlds** – Ferra (ore), Glacia (ice), Prisma (crystal),
   Nimbus (gas), Cinder (plasma) and Umbra (dark matter).
 - **Upgrade** outposts, cargo bays, thrusters and mining lasers.

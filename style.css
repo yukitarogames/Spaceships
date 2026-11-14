@@ -354,7 +354,7 @@ b { font-weight: 700; }
 .ucard.lockd .uicon { color: var(--dim); background: rgba(255, 255, 255, 0.03); border-color: var(--line); }
 .ucard.tech .uicon { color: var(--rp); background: rgba(127, 212, 255, 0.09); border-color: rgba(127, 212, 255, 0.25); }
 .ucard.perk .uicon { color: var(--sd); }
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
 .tile { padding: 8px 6px; border-radius: 13px; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--line); text-align: center; min-width: 0; }
 .tile i { display: block; font: 600 9.5px var(--fd); font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
 .tile b { display: block; margin-top: 2px; font: 700 15px var(--fd); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

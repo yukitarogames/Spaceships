@@ -36,7 +36,6 @@
     cargo: '<path d="M3.500 8L12 3.500 20.500 8v8L12 20.500 3.500 16z"/><path d="M3.500 8L12 12.500 20.500 8M12 12.500v8"/>',
     thruster: '<path d="M4 12h9"/><path d="M13 7l6 5-6 5z"/><path d="M4 7.500h4M4 16.500h4"/>',
     laser: '<path d="M4 20l9-9"/><path d="M13 11l2.500-2.500"/><path d="M17 3v3M21 7h-3M19.800 4.200l-2 2"/><circle cx="16" cy="8" r="1.500"/>',
-    tap: '<path d="M9 11V5.500a1.500 1.500 0 0 1 3 0V10"/><path d="M12 10V8.500a1.500 1.500 0 0 1 3 0V11"/><path d="M15 11v-.5a1.500 1.500 0 0 1 3 0V15c0 3.300-2.200 5.500-5.500 5.500-2.500 0-3.800-1-5-3L5.300 14a1.400 1.400 0 0 1 2.300-1.600L9 14"/>',
     hab: '<path d="M3 19.500a9 9 0 0 1 18 0z"/><path d="M12 10.500v9M7.500 12.500l-2 7M16.500 12.500l2 7"/>',
     lab: '<circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="9.500" ry="3.800"/><ellipse cx="12" cy="12" rx="9.500" ry="3.800" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.500" ry="3.800" transform="rotate(120 12 12)"/>',
     ref: '<path d="M4 20.500V11l5 3V11l5 3V4.500h4v16z"/><path d="M3 20.500h18"/>',
@@ -252,19 +251,17 @@
     const next = L + 1;
     if (id === 'cargo') return 'Hold ' + fmt(G.cargoAt(L), 1) + ' → <b>' + fmt(G.cargoAt(next), 1) + '</b>';
     if (id === 'thr') return 'Speed ' + Math.round((G.speedAt(L) / SH.SHIP.speed) * 100) + '% → <b>' + Math.round((G.speedAt(next) / SH.SHIP.speed) * 100) + '%</b>';
-    if (id === 'laser') return 'Mining ' + G.mineTimeAt(L).toFixed(2) + 's → <b>' + G.mineTimeAt(next).toFixed(2) + 's</b>';
-    return 'Each tap pulls ' + Math.round(G.tapFracAt(L) * 100) + '% → <b>' + Math.round(G.tapFracAt(next) * 100) + '%</b> of a haul';
+    return 'Mining ' + G.mineTimeAt(L).toFixed(2) + 's → <b>' + G.mineTimeAt(next).toFixed(2) + 's</b>';
   }
   function upgStatMax(id, L) {
     if (id === 'thr') return 'Speed ' + Math.round((G.speedAt(L) / SH.SHIP.speed) * 100) + '% — top speed reached';
     if (id === 'laser') return 'Mining ' + G.mineTimeAt(L).toFixed(2) + 's — fully tuned';
-    if (id === 'tap') return 'Each tap pulls ' + Math.round(G.tapFracAt(L) * 100) + '% of a haul';
     return 'Hold ' + fmt(G.cargoAt(L), 1);
   }
   function buildShips() {
     const s = G.s;
     let h = '<div class="bar"><div class="fleet">' + svg('ships') + '<b>Ship systems</b></div>' + segHTML() + '</div>';
-    h += '<div class="tiles"><div class="tile"><i>Speed</i><b data-k="t-sp"></b></div><div class="tile"><i>Cargo</i><b data-k="t-ca"></b></div><div class="tile"><i>Mining</i><b data-k="t-mi"></b></div><div class="tile"><i>Tap</i><b data-k="t-ta"></b></div></div>';
+    h += '<div class="tiles"><div class="tile"><i>Speed</i><b data-k="t-sp"></b></div><div class="tile"><i>Cargo</i><b data-k="t-ca"></b></div><div class="tile"><i>Mining</i><b data-k="t-mi"></b></div></div>';
     for (const id of UPG_ORDER) {
       const u = UPG[id];
       if (!G.upgAvail(id)) {
@@ -275,13 +272,12 @@
       h += '<div class="ucard" data-u="' + id + '"><div class="uicon">' + svg(u.icon) + '</div><div class="uinfo"><div class="uname">' + u.name + ' <span class="lv" data-k="lv"></span></div><div class="udesc">' + u.desc + '</div><div class="ustat" data-k="st"></div></div><button class="btn" data-act="upg" data-id="' + id + '"></button></div>';
     }
     el.panel.innerHTML = h;
-    const t = { sp: $('[data-k=t-sp]', el.panel), ca: $('[data-k=t-ca]', el.panel), mi: $('[data-k=t-mi]', el.panel), ta: $('[data-k=t-ta]', el.panel) };
+    const t = { sp: $('[data-k=t-sp]', el.panel), ca: $('[data-k=t-ca]', el.panel), mi: $('[data-k=t-mi]', el.panel) };
     const cards = $$('.ucard[data-u]', el.panel).map((c) => ({ id: c.dataset.u, lv: $('[data-k=lv]', c), st: $('[data-k=st]', c), btn: $('button', c) }));
     dyn.push(() => {
       setText(t.sp, Math.round((G.speed() / SH.SHIP.speed) * 100) + '%');
       setText(t.ca, fmt(G.cargo(), 1));
       setText(t.mi, G.mineTime().toFixed(2) + 's');
-      setText(t.ta, '+' + fmt(G.tapValue(s.sel), 1));
       for (const k of cards) {
         const L = s.upg[k.id], maxed = L >= UPG[k.id].max;
         setText(k.lv, 'Lv ' + L + (UPG[k.id].max < 1000 ? '/' + UPG[k.id].max : ''));
@@ -452,7 +448,7 @@
       const n = $(flash, el.panel);
       flash = null;
       if (n) {
-        n.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        n.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         n.classList.add('flash');
         setTimeout(() => n.classList.remove('flash'), 1200);
       }
@@ -532,11 +528,11 @@
       if (out) { A.play('comet'); A.buzz(20); }
     } else if (hit.type === 'planet') {
       if (s.planets[hit.i].un) {
-        const amt = G.tap(hit.i);
-        R.tapFx(hit.i, amt);
-        A.play('tap');
-        A.buzz(8);
-        if (s.sel !== hit.i) { s.sel = hit.i; if (tab === 'planets') for (const f of dyn) f(); }
+        // picking a world on the map selects it and shows its card
+        s.sel = hit.i;
+        R.selectFx(hit.i);
+        A.play('ui');
+        go('planets', '.pcard[data-act=sel][data-i="' + hit.i + '"]');
       } else {
         A.play('ui');
         go('planets', '[data-lock]');
@@ -577,7 +573,7 @@
     const s = G.s, st = s.stats;
     const tog = (o, label) => '<button class="tog' + (s.opts[o] ? ' on' : '') + '" data-m="opt" data-o="' + o + '"><span></span>' + label + '</button>';
     modal('<h2>Settings</h2><div class="togs">' + tog('sound', 'Sound effects') + tog('haptic', 'Vibration') + '</div>' +
-      '<h3>Your empire</h3><div class="mlist"><div><span>Time played</span><b>' + SH.fmtTime(st.time) + '</b></div><div><span>Taps</span><b>' + fmt(st.taps) + '</b></div><div><span>Hauls delivered</span><b>' + fmt(st.hauls) + '</b></div><div><span>Ships built</span><b>' + fmt(st.built) + '</b></div><div><span>Comets caught</span><b>' + fmt(st.comets) + '</b></div><div><span>Systems settled</span><b>' + (s.warps + 1) + '</b></div></div>' +
+      '<h3>Your empire</h3><div class="mlist"><div><span>Time played</span><b>' + SH.fmtTime(st.time) + '</b></div><div><span>Hauls delivered</span><b>' + fmt(st.hauls) + '</b></div><div><span>Ships built</span><b>' + fmt(st.built) + '</b></div><div><span>Comets caught</span><b>' + fmt(st.comets) + '</b></div><div><span>Systems settled</span><b>' + (s.warps + 1) + '</b></div></div>' +
       '<h3>Save data</h3><p class="mut">Progress saves automatically on this device.</p><div class="mrow"><button class="btn ghost" data-m="export"><span class="lbl">Export</span></button><button class="btn ghost" data-m="import"><span class="lbl">Import</span></button><button class="btn ghost danger" data-m="reset"><span class="lbl">Reset</span></button></div><p class="ver">Starhaul v' + SH.BUILD + '</p>', { cls: 'tall' });
   }
   function showOffline(o) {
@@ -590,7 +586,7 @@
   }
   UI.showOffline = showOffline;
   function showIntro() {
-    modal('<div class="logo"><span>STAR</span>HAUL</div><p class="lead">Your colony ship has touched down on <b>Haven</b>. One hauler, one dusty moon, and a whole system waiting.</p><ul class="how"><li>' + svg('tap', 'sm') + '<span><b>Tap worlds</b> to mine them by hand.</span></li><li>' + svg('ships', 'sm') + '<span><b>Build ships</b> — they fly out, mine and bring the cargo home on their own.</span></li><li>' + svg('empire', 'sm') + '<span><b>Grow Haven</b> from a lonely outpost into a star empire.</span></li></ul><div class="mrow"><button class="btn go big" data-m="start"><span class="lbl">Launch</span></button></div>', { sticky: true, cls: 'intro' });
+    modal('<div class="logo"><span>STAR</span>HAUL</div><p class="lead">Your colony ship has touched down on <b>Haven</b>. One hauler, one dusty moon, and a whole system waiting.</p><ul class="how"><li>' + svg('ships', 'sm') + '<span><b>Build ships</b> — they fly out, mine and bring the cargo home on their own.</span></li><li>' + svg('planets', 'sm') + '<span><b>Survey new worlds</b> and send your fleet wherever you need it.</span></li><li>' + svg('empire', 'sm') + '<span><b>Grow Haven</b> from a lonely outpost into a star empire.</span></li></ul><div class="mrow"><button class="btn go big" data-m="start"><span class="lbl">Launch</span></button></div>', { sticky: true, cls: 'intro' });
   }
   UI.showIntro = showIntro;
 

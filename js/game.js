@@ -8,7 +8,7 @@
   let S = null; // saved state
   let FX = null; // effects from research + perks
   let GM = 1; // global production multiplier
-  const RT = (G.rt = { fleets: [], comet: null, cometT: 80, droneAcc: 0, slowAcc: 0, nextId: 1 });
+  const RT = (G.rt = { fleets: [], comet: null, cometT: 80, slowAcc: 0, nextId: 1 });
   const MAXV = 10; // max ship sprites per planet (each sprite stands in for several ships)
 
   const subs = [];
@@ -35,7 +35,7 @@
       planets: PLANETS.map((p, i) => ({ un: i === 0, ships: i === 0 ? 1 : 0, post: 0 })),
       ships: 1,
       bought: 0,
-      upg: { cargo: 0, thr: 0, laser: 0, tap: 0 },
+      upg: { cargo: 0, thr: 0, laser: 0 },
       bld: { hab: 0, lab: 0, ref: 0, acad: 0, core: 0, forge: 0 },
       era: 0,
       pop: 12,
@@ -49,11 +49,12 @@
       mission: 0,
       boostT: 0,
       boostMult: 1,
-      stats: { taps: 0, hauls: 0, comets: 0, time: 0, runTime: 0, built: 1 },
+      stats: { hauls: 0, comets: 0, time: 0, runTime: 0, built: 1 },
       opts: { sound: true, haptic: true, buy: 1, autoShip: true, autoPost: true, intro: false },
       sel: 0,
       last: Date.now(),
     };
+    s.res.ore = SHIP.startOre; // enough to commission a second hauler right away
     return s;
   };
 
@@ -75,15 +76,12 @@
   G.mineTimeAt = (L) => SHIP.mine * Math.pow(0.93, L);
   G.cargo = () => SHIP.cargo * Math.pow(SHIP.cargoGrowth, S.upg.cargo) * FX.cargo;
   G.cargoAt = (L) => SHIP.cargo * Math.pow(SHIP.cargoGrowth, L) * FX.cargo;
-  G.tapFrac = () => 0.1 + 0.04 * S.upg.tap;
-  G.tapFracAt = (L) => 0.1 + 0.04 * L;
   G.cycle = (i) => (2 * PLANETS[i].dist) / G.speed() + G.mineTime();
   G.outpostMult = (L) => levelMult(L, OUTPOST.per);
   G.yieldMult = (i) => G.outpostMult(S.planets[i].post) * FX.res[PLANETS[i].res];
   G.haul = (i) => G.cargo() * G.yieldMult(i) * GM; // one ship, one trip
   G.shipRate = (i) => (S.planets[i].ships * G.haul(i)) / G.cycle(i);
-  G.tapValue = (i) => (G.haul(i) * G.tapFrac() + FX.tapLink * G.shipRate(i)) * FX.tapMult;
-  G.rate = (i) => (S.planets[i].un ? G.shipRate(i) + FX.autoTap * G.tapValue(i) : 0);
+  G.rate = (i) => (S.planets[i].un ? G.shipRate(i) : 0);
   G.resRate = function (r) {
     let t = 0;
     for (let i = 0; i < PLANETS.length; i++) if (PLANETS[i].res === r) t += G.rate(i);
@@ -122,8 +120,8 @@
   };
   function buildFx() {
     const f = {
-      res: {}, all: 1, tapLink: 0, offEff: 0.5, cometFreq: 1, autoTap: 0, offCap: 4 * 3600, cometMult: 1,
-      startShips: 0, cargo: 1, research: 1, tapMult: 1, charted: false, autoShip: false, autoPost: false,
+      res: {}, all: 1, offEff: 0.5, cometFreq: 1, offCap: 4 * 3600, cometMult: 1,
+      startShips: 0, cargo: 1, research: 1, charted: false, autoShip: false, autoPost: false,
     };
     for (const r of RID) f.res[r] = 1;
     for (const t of TECHS) if (S.tech[t.id]) t.fx(f);
@@ -389,14 +387,6 @@
     return true;
   };
 
-  G.tap = function (i, auto) {
-    if (!S.planets[i].un) return 0;
-    const amt = G.tapValue(i);
-    gain(PLANETS[i].res, amt);
-    if (!auto) S.stats.taps++;
-    return amt;
-  };
-
   /* ---------- comets ---------- */
   function cometDelay() {
     return (70 + Math.random() * 40) / FX.cometFreq;
@@ -422,7 +412,7 @@
       const secs = 20 * FX.cometMult;
       for (let i = 0; i < PLANETS.length; i++) {
         if (!S.planets[i].un) continue;
-        const amt = Math.max(G.rate(i) * secs, G.tapValue(i) * 15);
+        const amt = Math.max(G.rate(i) * secs, G.haul(i) * 2);
         gain(PLANETS[i].res, amt);
         out.gains[PLANETS[i].res] = amt;
       }
@@ -447,7 +437,7 @@
         const boost = S.boostT > 0 ? S.boostMult : 1;
         for (let i = 0; i < PLANETS.length; i++) {
           if (!S.planets[i].un) continue;
-          out[PLANETS[i].res] = Math.max((G.rate(i) / boost) * m.reward.secs, G.tapValue(i) * 10);
+          out[PLANETS[i].res] = Math.max((G.rate(i) / boost) * m.reward.secs, G.haul(i) / boost);
         }
       } else out[k] = m.reward[k];
     }
@@ -574,25 +564,12 @@
         }
       }
     }
-    if (FX.autoTap > 0) {
-      RT.droneAcc += dt * FX.autoTap;
-      let n = Math.floor(RT.droneAcc);
-      if (n > 0) {
-        RT.droneAcc -= n;
-        for (let i = 0; i < PLANETS.length; i++) {
-          if (!S.planets[i].un) continue;
-          const amt = G.tapValue(i) * n;
-          gain(PLANETS[i].res, amt);
-          emit('drone', i, amt);
-        }
-      }
-    }
     slowStep(dt);
     // comets
     if (RT.comet) {
       RT.comet.t += dt;
       if (RT.comet.t >= RT.comet.dur) { RT.comet = null; RT.cometT = cometDelay(); }
-    } else if (S.stats.taps >= 10 || S.stats.time > 240) {
+    } else {
       RT.cometT -= dt;
       if (RT.cometT <= 0) {
         RT.comet = { t: 0, dur: 12, seed: Math.random(), dir: Math.random() < 0.5 ? 1 : -1 };
@@ -666,6 +643,7 @@
       try {
         const raw = typeof json === 'string' ? JSON.parse(json) : json;
         if (raw && typeof raw === 'object' && raw.res) {
+          const oldV = num(raw.v, 1);
           const pl = raw.planets;
           delete raw.planets;
           s = merge(s, raw);
@@ -681,6 +659,9 @@
           if (a > s.ships) s.ships = a;
           s.pop = Math.max(12, num(s.pop, 12));
           s.rp = Math.max(0, num(s.rp, 0));
+          // v1 had a tap-to-mine opening mission and tap achievements
+          if (oldV < 2) s.mission = Math.max(0, num(s.mission, 0) - 1);
+          for (const id in s.ach) if (!ACHS.some((a) => a.id === id)) delete s.ach[id];
           s.v = SH.VERSION;
           loaded = true;
         }
