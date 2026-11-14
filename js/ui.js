@@ -205,7 +205,7 @@
     if (next >= 0) {
       const pl = PLANETS[next];
       h += '<div class="pcard locked" data-lock="' + next + '" style="--rc:var(--' + pl.res + ')"><canvas class="pimg" width="112" height="112" data-i="' + next + '" data-l="1"></canvas>' +
-        '<div class="pinfo"><div class="pname">' + pl.name + ' <span class="tag ' + pl.res + '">' + ri(pl.res) + RMAP[pl.res].name + '</span></div><div class="psub">' + pl.blurb + '</div></div>' +
+        '<div class="pinfo"><div class="pname">' + pl.name + ' <span class="tag ' + pl.res + '">' + ri(pl.res) + RMAP[pl.res].name + '</span></div><div class="psub">' + pl.blurb + '</div><div class="eta" data-k="eta"></div></div>' +
         '<button class="btn wide" data-act="unlock" data-i="' + next + '"></button></div>';
       const more = PLANETS.length - 1 - next;
       if (more > 0) h += '<div class="more">' + svg('lock') + more + ' more world' + (more > 1 ? 's lie' : ' lies') + ' beyond…</div>';
@@ -217,7 +217,7 @@
       c, i: +c.dataset.i, sub: $('[data-k=sub]', c), rate: $('[data-k=rate]', c), n: $('[data-k=n]', c),
       minus: $('[data-d="-1"]', c), plus: $('[data-d="1"]', c), post: $('[data-act=post]', c),
     }));
-    const unl = $('[data-act=unlock]', el.panel);
+    const unl = $('[data-act=unlock]', el.panel), etaEl = $('[data-k=eta]', el.panel);
     dyn.push(() => {
       const idle = G.idle();
       setText(fl, s.ships + (s.ships === 1 ? ' ship' : ' ships'));
@@ -232,7 +232,7 @@
         setText(k.sub, 'Trip ' + G.cycle(k.i).toFixed(1) + 's · yield ×' + fmt(G.yieldMult(k.i), 1) + (nm ? ' · ×2 at Lv ' + nm : ''));
         setText(k.n, String(st.ships));
         setCls(k.minus, 'off', st.ships <= 0);
-        setCls(k.plus, 'off', idle <= 0);
+        setCls(k.plus, 'off', !G.canAssign(k.i));
         setCls(k.plus, 'hot', idle > 0);
         buyBtn(k.post, G.quote(G.item.post(k.i), want()), 'Outpost <u>Lv ' + st.post + '</u>');
       }
@@ -240,6 +240,9 @@
         const c = PLANETS[next].unlock, ok = G.can(c);
         setCls(unl, 'go', ok);
         setHTML(unl, '<span class="lbl">Survey ' + PLANETS[next].name + '</span><span class="cost">' + costHTML(c) + '</span>');
+        const t = G.eta(c);
+        setCls(etaEl, 'ok', ok);
+        setText(etaEl, ok ? 'Ready to survey!' : isFinite(t) ? 'Ready in about ' + SH.fmtTime(Math.ceil(t)) : 'Send ships out to gather what you need');
       }
     });
   }
@@ -301,7 +304,7 @@
   function buildEmpire() {
     const s = G.s, e = SH.eraDef(s.era + 1);
     let h = '<div class="card era"><div class="era-top"><div><i>Current era</i><b>' + SH.eraDef(s.era).name + '</b></div>' + svg('arrow') + '<div class="nx"><i>Next</i><b>' + e.name + '</b></div></div>' +
-      '<div class="era-perk">' + svg('bolt', 'sm') + 'All production ×2 · ' + e.perk + '</div><div class="reqs" data-k="reqs"></div><button class="btn big" data-act="era"><span class="lbl">Advance to ' + e.name + '</span></button></div>';
+      '<div class="era-perk">' + svg('bolt', 'sm') + 'All production ×2 · ' + e.perk + '</div><div class="reqs" data-k="reqs"></div><div class="eta" data-k="erahint"></div><button class="btn big" data-act="era"><span class="lbl">Advance to ' + e.name + '</span></button></div>';
     h += '<div class="card popc"><div class="row"><span class="lab">' + svg('pop', 'sm') + 'Population</span><b data-k="pop"></b></div><div class="pbar"><span data-k="popbar"></span></div><div class="row sub"><span data-k="wf"></span><span data-k="mult" class="multb" data-act="mults"></span></div></div>';
     h += '<div class="bar"><div class="fleet">' + svg('empire') + '<b>Buildings</b></div>' + segHTML() + '</div>';
     for (const id of BLD_ORDER) {
@@ -316,7 +319,7 @@
       h += '<div class="ucard" data-b="' + id + '"><div class="uicon">' + svg(b.icon) + '</div><div class="uinfo"><div class="uname">' + b.name + ' <span class="lv" data-k="lv"></span></div><div class="udesc">' + b.desc + '</div><div class="ustat" data-k="st"></div></div><button class="btn" data-act="bld" data-id="' + id + '"></button></div>';
     }
     el.panel.innerHTML = h;
-    const reqs = $('[data-k=reqs]', el.panel), eraBtn = $('[data-act=era]', el.panel);
+    const reqs = $('[data-k=reqs]', el.panel), eraBtn = $('[data-act=era]', el.panel), eraHint = $('[data-k=erahint]', el.panel);
     const pop = $('[data-k=pop]', el.panel), popbar = $('[data-k=popbar]', el.panel), wf = $('[data-k=wf]', el.panel), mult = $('[data-k=mult]', el.panel);
     const cards = $$('.ucard[data-b]', el.panel).map((c) => ({ id: c.dataset.b, lv: $('[data-k=lv]', c), st: $('[data-k=st]', c), btn: $('button', c) }));
     dyn.push(() => {
@@ -326,8 +329,14 @@
         rh += '<span class="req ' + r + (s.res[r] >= e.cost[r] ? ' ok' : '') + '">' + ri(r) + fmt(Math.min(s.res[r], e.cost[r])) + '/' + fmt(e.cost[r]) + '</span>';
       }
       setHTML(reqs, rh);
-      setCls(eraBtn, 'go', G.eraReady());
-      const cap = G.popCap();
+      const ready = G.eraReady(), cap = G.popCap(), t = G.eta(e.cost);
+      setCls(eraBtn, 'go', ready);
+      setCls(eraHint, 'ok', ready);
+      setText(eraHint, ready ? 'Your people are ready.'
+        : cap < e.pop ? 'Build more Habitat Domes to house ' + fmt(e.pop) + ' citizens'
+        : !isFinite(t) ? 'Send ships out to gather what you need'
+        : t > 0 ? 'Ready in about ' + SH.fmtTime(Math.ceil(t))
+        : 'Waiting for your population to grow…');
       setText(pop, fmt(s.pop) + ' / ' + fmt(cap));
       setW(popbar, Math.min(100, (s.pop / cap) * 100));
       setText(wf, 'Workforce bonus ×' + G.workforce().toFixed(2));
@@ -484,7 +493,8 @@
       case 'assign': {
         ev.stopPropagation();
         const d = +b.dataset.d, i = +b.dataset.i;
-        const n = G.assign(i, d * (s.opts.buy === 0 ? 1e6 : s.opts.buy || 1));
+        const amt = s.opts.buy === 0 ? (d > 0 ? Math.max(1, G.idle()) : 1e6) : s.opts.buy || 1;
+        const n = G.assign(i, d * amt);
         if (n) { A.play('ui'); A.buzz(5); for (const f of dyn) f(); } else deny(b);
         break;
       }

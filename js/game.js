@@ -240,14 +240,55 @@
     emit('ship', q.n, target);
     return q.n;
   };
+  // + sends ships to planet i: idle ships first, then borrowed from the busiest other world.
+  // - recalls ships to the idle pool.
   G.assign = function (i, delta) {
     const p = S.planets[i];
     if (!p.un) return 0;
-    const d = delta > 0 ? Math.min(delta, G.idle()) : -Math.min(-delta, p.ships);
-    if (!d) return 0;
-    p.ships += d;
-    G.syncFleet(i);
-    return d;
+    if (delta < 0) {
+      const d = Math.min(-delta, p.ships);
+      if (!d) return 0;
+      p.ships -= d;
+      G.syncFleet(i);
+      return -d;
+    }
+    let need = delta, moved = Math.min(need, G.idle());
+    p.ships += moved;
+    need -= moved;
+    const touched = {};
+    while (need > 0) {
+      let b = -1;
+      for (let k = 0; k < S.planets.length; k++)
+        if (k !== i && S.planets[k].ships > 0 && (b < 0 || S.planets[k].ships > S.planets[b].ships)) b = k;
+      if (b < 0) break;
+      S.planets[b].ships--;
+      p.ships++;
+      touched[b] = 1;
+      need--;
+      moved++;
+    }
+    if (moved) {
+      G.syncFleet(i);
+      for (const k in touched) G.syncFleet(+k);
+    }
+    return moved;
+  };
+  G.canAssign = function (i) {
+    if (G.idle() > 0) return true;
+    for (let k = 0; k < S.planets.length; k++) if (k !== i && S.planets[k].ships > 0) return true;
+    return false;
+  };
+  // Seconds until `cost` is affordable at current income (0 = now, Infinity = never)
+  G.eta = function (cost) {
+    let t = 0;
+    for (const r in cost) {
+      const lack = cost[r] - S.res[r];
+      if (lack <= 0) continue;
+      const rate = G.resRate(r);
+      if (rate <= 0) return Infinity;
+      t = Math.max(t, lack / rate);
+    }
+    return t;
   };
   G.recallAll = function () {
     for (let i = 0; i < S.planets.length; i++) { S.planets[i].ships = 0; G.syncFleet(i); }

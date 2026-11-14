@@ -324,6 +324,9 @@ b { font-weight: 700; }
 .pcard.locked .psub { white-space: normal; }
 .pcard.locked .btn { grid-area: ctl; }
 .pcard.flash, .ucard.flash { animation: flash 0.6s 2; }
+.eta { margin-top: 3px; font: 600 11px var(--fd); color: #a9b4d6; }
+.eta.ok { color: var(--teal); }
+.era .eta { margin: -4px 0 10px; }
 .more { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px; color: var(--dim); font: 600 12px var(--fd); text-align: center; }
 .more .ic { width: 15px; height: 15px; }
 
