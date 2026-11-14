@@ -568,7 +568,8 @@
     // comets
     if (RT.comet) {
       RT.comet.t += dt;
-      if (RT.comet.t >= RT.comet.dur) { RT.comet = null; RT.cometT = cometDelay(); }
+      // no clicking needed: the fleet harvests a comet as it crosses the middle of the system
+      if (RT.comet.t >= RT.comet.dur * 0.5) G.catchComet();
     } else {
       RT.cometT -= dt;
       if (RT.cometT <= 0) {

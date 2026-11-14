@@ -522,11 +522,7 @@
     const hit = R.pick(ev.clientX - rect.left, ev.clientY - rect.top);
     if (!hit) return;
     const s = G.s;
-    if (hit.type === 'comet') {
-      R.cometFx();
-      const out = G.catchComet();
-      if (out) { A.play('comet'); A.buzz(20); }
-    } else if (hit.type === 'planet') {
+    if (hit.type === 'planet') {
       if (s.planets[hit.i].un) {
         // picking a world on the map selects it and shows its card
         s.sel = hit.i;
@@ -559,7 +555,7 @@
     } else if (m.tab) {
       A.play('ui');
       go(m.tab);
-    } else toast('<span>Watch the sky — a comet will streak across the map.</span>');
+    } else toast('<span>Comets drift through now and then — your fleet harvests them on its own.</span>');
   }
 
   /* ---------- modals: settings, achievements, offline, intro ---------- */
@@ -573,7 +569,7 @@
     const s = G.s, st = s.stats;
     const tog = (o, label) => '<button class="tog' + (s.opts[o] ? ' on' : '') + '" data-m="opt" data-o="' + o + '"><span></span>' + label + '</button>';
     modal('<h2>Settings</h2><div class="togs">' + tog('sound', 'Sound effects') + tog('haptic', 'Vibration') + '</div>' +
-      '<h3>Your empire</h3><div class="mlist"><div><span>Time played</span><b>' + SH.fmtTime(st.time) + '</b></div><div><span>Hauls delivered</span><b>' + fmt(st.hauls) + '</b></div><div><span>Ships built</span><b>' + fmt(st.built) + '</b></div><div><span>Comets caught</span><b>' + fmt(st.comets) + '</b></div><div><span>Systems settled</span><b>' + (s.warps + 1) + '</b></div></div>' +
+      '<h3>Your empire</h3><div class="mlist"><div><span>Time played</span><b>' + SH.fmtTime(st.time) + '</b></div><div><span>Hauls delivered</span><b>' + fmt(st.hauls) + '</b></div><div><span>Ships built</span><b>' + fmt(st.built) + '</b></div><div><span>Comets harvested</span><b>' + fmt(st.comets) + '</b></div><div><span>Systems settled</span><b>' + (s.warps + 1) + '</b></div></div>' +
       '<h3>Save data</h3><p class="mut">Progress saves automatically on this device.</p><div class="mrow"><button class="btn ghost" data-m="export"><span class="lbl">Export</span></button><button class="btn ghost" data-m="import"><span class="lbl">Import</span></button><button class="btn ghost danger" data-m="reset"><span class="lbl">Reset</span></button></div><p class="ver">Starhaul v' + SH.BUILD + '</p>', { cls: 'tall' });
   }
   function showOffline(o) {
@@ -659,6 +655,7 @@
         A.play('ach');
         break;
       case 'comet':
+        A.play('comet');
         if (a.kind === 'frenzy') toast('<b>Comet Frenzy!</b><span>Production ×' + s.boostMult + ' for ' + Math.round(a.secs) + 's</span>', 'gold', 3200);
         else if (a.kind === 'research') toast('<b>Comet data recovered</b><span>' + gainsHTML({ rp: a.rp }) + '</span>', 'good', 3200);
         else toast('<b>Comet harvested</b><span>' + gainsHTML(a.gains) + '</span>', 'good', 3200);

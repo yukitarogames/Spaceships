@@ -18,8 +18,9 @@ outpost into a star empire.
 - **Upgrade** outposts, cargo bays, thrusters and mining lasers.
 - **Develop Haven**: habitats, a refinery, research labs, a fleet academy
   and more, then advance through the eras from Outpost to Star Empire.
-- **Research** breakthroughs, catch comets, follow the mission chain and
-  earn achievements.
+- **Research** breakthroughs, follow the mission chain and earn
+  achievements. Comets that drift through are harvested automatically for
+  a bonus.
 - **Warp** to a new system once you are a Star Empire to earn Stardust and
   permanent Legacy perks.
 

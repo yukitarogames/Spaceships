@@ -3,7 +3,7 @@
   'use strict';
   const SH = window.SH;
   const G = SH.G, R = SH.R, UI = SH.UI;
-  SH.BUILD = '1.1.0';
+  SH.BUILD = '1.2.0';
   const KEY = 'starhaul.save.v1';
   let saveTimer = 0, hiddenAt = 0, last = 0;
 

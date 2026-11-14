@@ -461,6 +461,8 @@
     } else if (type === 'bld') {
       ring(home.x, home.y, home.r, home.r * 1.9, 0.45, '255,205,110', 2, 0.7);
       home.pulse = 1;
+    } else if (type === 'comet') {
+      R.cometFx();
     } else if (type === 'ship') {
       ring(home.x, home.y, home.r * 0.8, home.r * 1.6, 0.4, '160,215,255', 2, 0.7);
     }
@@ -485,7 +487,6 @@
 
   /* ---------- picking ---------- */
   R.pick = function (x, y) {
-    if (cometXY && Math.hypot(x - cometXY.x, y - cometXY.y) < 40) return { type: 'comet' };
     const s = G.s;
     let best = -1, bd = 1e9;
     const next = G.nextLocked();
@@ -713,17 +714,18 @@
     hg.addColorStop(1, 'rgba(255,220,130,0)');
     ctx.fillStyle = hg;
     ctx.beginPath(); ctx.arc(x, y, 16, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,230,160,' + (0.35 + 0.3 * Math.sin(clock * 8)) + ')';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(x, y, 21 + Math.sin(clock * 8) * 2.5, 0, TAU); ctx.stroke();
+    // a tractor beam from home locks on just before the comet is harvested
+    const lock = clamp((u - 0.3) / 0.2, 0, 1);
+    if (lock > 0) {
+      const bg2 = ctx.createLinearGradient(home.x, home.y, x, y);
+      bg2.addColorStop(0, 'rgba(255,214,130,0)');
+      bg2.addColorStop(1, 'rgba(255,236,170,' + lock * (0.55 + 0.3 * Math.sin(clock * 30)) + ')');
+      ctx.strokeStyle = bg2;
+      ctx.lineWidth = 1 + lock * 1.5;
+      ctx.beginPath(); ctx.moveTo(home.x, home.y); ctx.lineTo(x, y); ctx.stroke();
+    }
     if (Math.random() < dt * 40) {
       parts.push({ x: x + tx * 8, y: y + ty * 8, vx: tx * 40 + (Math.random() - 0.5) * 40, vy: ty * 40 + (Math.random() - 0.5) * 40, t: 0, dur: 0.5, rgb: '255,236,170', size: 1.6 });
-    }
-    if (G.s.stats.comets < 2) {
-      ctx.font = '700 10px ' + FONT;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillStyle = 'rgba(255,236,170,0.95)';
-      ctx.fillText('TAP!', x, y - 26);
     }
   }
 
